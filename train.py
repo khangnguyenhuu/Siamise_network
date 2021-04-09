@@ -5,6 +5,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import random
+import matplotlib.pyplot as plt
 
 import tensorflow as tf
 from pathlib import Path
@@ -22,13 +23,39 @@ from Distance_layer import DistanceLayer
 from Load_data import preprocess_image, build_triplets_dset
 from siamese_net import SiameseModel
 
-target_shape=(200,200)
-train = pd.read_csv('./Data_shopee/train_images_triplets.csv')
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--csv_training_file", type=str
+                        default='./Data_shopee/train_images_triplets.csv')
+    parser.add_argument("--training_images", type = str,
+                        default='./Data_shopee/train_images')
+    parser.add_argument("--input_shape", type=int,
+                        default=200)
+    parser.add_argument("-v", "--visualize_hist", type=bool, default=False)
 
-train = train.apply(lambda col: './Data_shopee/train_images' + '/' + col)
+    return parser.parse_args()
+
+def plot_hist(hist):
+    plt.plot(hist.history['loss'])
+    plt.plot(hist.history['val_loss'])
+    plt.legend(['train_loss', 'val_loss'])
+    plt.xlabel('#epochs')
+    plt.ylabel('loss')
+    plt.savefig('./result_fig.png')
+
+
+args = parse_args()
+
+shape = args.input_shape()
+target_shape=(shape, shape)
+train = pd.read_csv(args.csv_training_file)
+
+# split data
+train = train.apply(lambda col: args.training_images + '/' + col)
 train_paths, val_paths = train_test_split(train, train_size=0.8, random_state=42)
 train_paths.head()
 
+# loading data
 dtrain = build_triplets_dset(
     train_paths,
     bsize=1,
@@ -74,7 +101,22 @@ with strategy.scope():
 
 siamese_network.summary()
 
+# building model
 with strategy.scope():
     siamese_model = SiameseModel(siamese_network)
     siamese_model.compile(optimizer=optimizers.Adam(0.0001))
 hist = siamese_model.fit(dtrain, epochs=10, validation_data=dvalid, batch_size=1)
+
+# get embedding layer
+with strategy.scope():
+    encoder = tf.keras.Sequential([
+        siamese_model.siamese_network.get_layer('resnet50'),
+        siamese_model.siamese_network.get_layer('dropout'),
+        siamese_model.siamese_network.get_layer('reduce'),
+    ])
+
+    encoder.save('encoder.h5')
+
+# visualize chart output
+if args.visualize_hist == True:
+    plot_hist(hist)
