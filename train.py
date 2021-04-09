@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import random
 import matplotlib.pyplot as plt
+import argparse
 
 import tensorflow as tf
 from pathlib import Path
@@ -25,14 +26,16 @@ from siamese_net import SiameseModel
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--csv_training_file", type=str
+    parser.add_argument("--csv_training_file", type=str,
                         default='./Data_shopee/train_images_triplets.csv')
     parser.add_argument("--training_images", type = str,
                         default='./Data_shopee/train_images')
     parser.add_argument("--input_shape", type=int,
                         default=200)
-    parser.add_argument("-v", "--visualize_hist", type=bool, default=False)
-
+    parser.add_argument("-v", "--visualize_hist", type=bool, default=True)
+    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0001)
     return parser.parse_args()
 
 def plot_hist(hist):
@@ -46,7 +49,7 @@ def plot_hist(hist):
 
 args = parse_args()
 
-shape = args.input_shape()
+shape = args.input_shape
 target_shape=(shape, shape)
 train = pd.read_csv(args.csv_training_file)
 
@@ -104,8 +107,8 @@ siamese_network.summary()
 # building model
 with strategy.scope():
     siamese_model = SiameseModel(siamese_network)
-    siamese_model.compile(optimizer=optimizers.Adam(0.0001))
-hist = siamese_model.fit(dtrain, epochs=10, validation_data=dvalid, batch_size=1)
+    siamese_model.compile(optimizer=optimizers.Adam(args.learning_rate))
+hist = siamese_model.fit(dtrain, epochs=args.epochs, validation_data=dvalid, batch_size=args.batch_size)
 
 # get embedding layer
 with strategy.scope():
