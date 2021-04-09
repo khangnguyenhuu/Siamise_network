@@ -12,6 +12,4 @@ pip newest version
 
 > python3 train.py --csv_training_file [path to csv] --training_images [path to training images] --visualize_hist [True or Flase] --input_shape [input_shape of training network]
 
-## Notice
-To run train.py you need config the path of training dataset in line 26 & 28.
 
