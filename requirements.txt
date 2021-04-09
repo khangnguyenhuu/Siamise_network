@@ -1,6 +1,9 @@
 tqdm
 numpy
 pandas
-tensorflow-gpu
+tensorflow-gpu==2.4.1
 sklearn
 keras-toolkit
+scikit-build
+cmake
+opencv-python
